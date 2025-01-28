@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <stdint.h> // Include for intptr_t
+
+typedef struct node {
+    int value;
+    struct node* next;
+    pthread_mutex_t lock;
+} Node;
+
+typedef struct list {
+    Node* head;
+    pthread_mutex_t headLock;
+} List;
+
+void listInit(List* list) {
+    list->head = NULL;
+    pthread_mutex_init(&(list->headLock), NULL);
+}
+
+void listInsert(List* list, int value) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->value = value;
+    pthread_mutex_init(&(newNode->lock), NULL);
+
+    pthread_mutex_lock(&(list->headLock));
+    newNode->next = list->head;
+    list->head = newNode;
+    pthread_mutex_unlock(&(list->headLock));
+}
+
+void* threadInsert(void* arg) {
+    List* list = (List*)arg;
+    intptr_t numValues = 0; // Change to intptr_t
+    for (int i = 0; i < 1000000; i++) {
+        listInsert(list, i);
+        numValues++;
+    }
+    return (void*)numValues;
+}
+
+int main() {
+    List list;
+    listInit(&list);
+
+    int numThreads = 1;
+    pthread_t* threads = NULL;
+    struct timeval start, end;
+
+    while (numThreads <= 4) {
+        threads = (pthread_t*)malloc(numThreads * sizeof(pthread_t));
+
+        gettimeofday(&start, NULL);
+
+        for (int i = 0; i < numThreads; i++) {
+            pthread_create(&threads[i], NULL, threadInsert, (void*)&list);
+        }
+
+        intptr_t totalValues = 0; // Change to intptr_t
+        for (int i = 0; i < numThreads; i++) {
+            void* result;
+            pthread_join(threads[i], &result);
+            totalValues += (intptr_t)result; // Change to intptr_t
+        }
+
+        gettimeofday(&end, NULL);
+
+        double elapsed = (end.tv_sec - start.tv_sec) +
+                         (end.tv_usec - start.tv_usec) / 1000000.0;
+        printf("Num threads: %d, Count: %ld Execution time: %.6f seconds\n", numThreads, (long)totalValues,elapsed);
+
+        numThreads++;
+        free(threads);
+    }
+
+    return 0;
+}

@@ -1,0 +1,7 @@
+Q1:
+Q2:What do you think the resulting final process trees will look like as the percent- age changes?
+The higher the percentage the bigger the tree. 
+Q3: YES
+Q4: All children of c become children of a since a is the root. With the -R the children become the children of the youngest living parent.
+Q5:
+Q6:
